@@ -1,0 +1,9 @@
+name: MindAI
+version: 1.0
+main: ru.Fronzter.MindAc.MindAI
+api-version: 1.16
+author: Fronzter
+permissions:
+  mindai.alerts:
+    description: Разрешает получать оповещения от системы анализа
+    default: op
