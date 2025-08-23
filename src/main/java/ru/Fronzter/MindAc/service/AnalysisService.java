@@ -13,7 +13,6 @@ import ru.Fronzter.MindAc.util.MoshiFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,6 +36,7 @@ public class AnalysisService {
             JsonAdapter<Map<String, Object>> adapter = moshi.adapter(mapType);
             json = adapter.toJson(dataToSend);
         } catch (Exception e) {
+            MindAI.getInstance().getLogger().warning("Ошибка при сериализации данных для анализа: " + e.getMessage());
             return;
         }
 
@@ -52,12 +52,14 @@ public class AnalysisService {
         LazyHolder.CLIENT.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
+                MindAI.getInstance().getLogger().warning("Не удалось отправить данные на анализ: " + e.getMessage());
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 try (ResponseBody responseBody = response.body()) {
                     if (!response.isSuccessful() || responseBody == null) {
+                        MindAI.getInstance().getLogger().warning("Получен некорректный ответ от сервера анализа: " + response.code());
                         return;
                     }
                     String bodyString = responseBody.string();
@@ -67,6 +69,7 @@ public class AnalysisService {
                         Bukkit.getScheduler().runTask(MindAI.getInstance(), () -> handleResult(entity, probability));
                     }
                 } catch (Exception ex) {
+                    MindAI.getInstance().getLogger().severe("Ошибка при обработке ответа от сервера анализа: " + ex.getMessage());
                 }
             }
         });
@@ -90,10 +93,14 @@ public class AnalysisService {
     }
 
     private static void sendAlert(PlayerEntity entity, double probability) {
+        if (!MindAI.getInstance().getConfig().getBoolean("alerts.enabled", true)) {
+            return;
+        }
         String message = MindAI.getInstance().getConfig().getString("alerts.message");
         if (message == null || message.isEmpty()) return;
-        DecimalFormat df = new DecimalFormat("#.##");
-        String formattedProb = df.format(probability * 100.0D) + "%";
+
+        String formattedProb = String.format("%.2f%%", probability * 100.0D);
+
         String finalMessage = ChatColor.translateAlternateColorCodes('&', message.replace("%player%", entity.getName()).replace("%probability%", formattedProb));
         String permission = MindAI.getInstance().getConfig().getString("alerts.permission", "mindai.alerts");
         for (Player admin : Bukkit.getOnlinePlayers()) {
@@ -106,8 +113,9 @@ public class AnalysisService {
     private static void executeViolationCommand(PlayerEntity entity, double probability) {
         String command = MindAI.getInstance().getConfig().getString("alerts.violation-command", "");
         if (command.isEmpty()) return;
-        DecimalFormat df = new DecimalFormat("#.##");
-        String formattedProb = df.format(probability * 100.0D) + "%";
+
+        String formattedProb = String.format("%.2f%%", probability * 100.0D);
+
         String finalCommand = ChatColor.translateAlternateColorCodes('&', command.replace("%player%", entity.getName()).replace("%probability%", formattedProb));
         Bukkit.getScheduler().runTask(MindAI.getInstance(), () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
     }
