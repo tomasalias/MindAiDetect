@@ -41,12 +41,12 @@ public class HeartbeatService {
         RequestBody body = RequestBody.create(json, MediaType.parse("application/json; charset=utf-8"));
         Request request = new Request.Builder().url(heartbeatUrl).post(body).build();
 
-        try {
-            Response response = LazyHolder.CLIENT.newCall(request).execute();
+        try (Response response = LazyHolder.CLIENT.newCall(request).execute()) {
             if (!response.isSuccessful()) {
+                plugin.getLogger().warning("Ошибка при отправке" + response.code());
             }
-            response.close();
         } catch (IOException e) {
+            plugin.getLogger().warning("Не удалось отправить" + e.getMessage());
         }
     }
 

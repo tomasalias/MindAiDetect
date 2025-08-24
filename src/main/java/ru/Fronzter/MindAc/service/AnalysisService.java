@@ -19,7 +19,7 @@ import java.util.Map;
 public class AnalysisService {
 
     public static void analyze(final PlayerEntity entity) {
-        if (entity.getFrames().isEmpty()) {
+        if (!MindAI.isLicenseActive() || entity.getFrames().isEmpty()) {
             return;
         }
         entity.setLastAnalyzedFrames(entity.getFrames());
@@ -41,7 +41,6 @@ public class AnalysisService {
         }
 
         String url = MindAI.getInstance().getConfig().getString("api-endpoints.analysis-server", "") + "/predict";
-
         if (url.isEmpty() || url.equals("/predict")) {
             return;
         }
@@ -56,7 +55,7 @@ public class AnalysisService {
             }
 
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
+            public void onResponse(Call call, Response response) {
                 try (ResponseBody responseBody = response.body()) {
                     if (!response.isSuccessful() || responseBody == null) {
                         MindAI.getInstance().getLogger().warning("Получен некорректный ответ от сервера анализа: " + response.code());

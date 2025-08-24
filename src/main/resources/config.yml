@@ -1,24 +1,17 @@
-# ВАШ КЛЮЧ ДОСТУПА К API
-# Получите его у администратора проекта. @Fronzter Telegram
-api-key: ""
-# IP-АДРЕС ВАШЕГО СЕРВЕРА
-# Укажите здесь публичный IP-адрес вашего сервера Minecraft.
-server-ip: ""
-api-endpoints:
-  license-server: "http://license.mind-ai.tech:8000"
-  analysis-server: "http://api.mind-ai.tech:5000"
+api-key: "Ключ" # Получить @Fronzter telegram или mind-ai.tech (сайт)
 
+api-endpoints:
+  license-server: "http://license.mind-ai.tech"
+  analysis-server: "http://api.mind-ai.tech"
 ml-check:
   enabled: true
-  frames-to-analyze: 150 # НЕ советую менять, потому что не будет детектить.
+  frames-to-analyze: 150 # Не менять иначе 0 детекта будет!
   classification-threshold: 0.80
-  violation-threshold: 4
+  violation-threshold: 3
   window: 600
-
-# Настройки оповещений
 alerts:
   enabled: true
   permission: "mindai.alerts"
-  message: "&8[&3MindAI&8] &b%player% &fподозревается в читерстве &8[&3%probability%&8]"
-  violation-command: ""
-  punishment: ""
+  message: "&8[&3MindAI&8] &f%player% &bподозревается в читерстве &8(&3%probability%&8)"
+  violation-command: "kick %player% cheat"
+  punishment: "kick %player% cheat"
