@@ -35,6 +35,7 @@ dependencies {
     implementation "org.ejml:ejml-core:0.41"
     implementation "org.ejml:ejml-ddense:0.41"
     implementation "org.ejml:ejml-simple:0.41"
+    implementation "com.zaxxer:HikariCP:5.1.0"
 }
 
 
