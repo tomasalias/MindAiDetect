@@ -5,11 +5,12 @@ import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
 import okhttp3.*;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import ru.Fronzter.MindAc.MindAI;
+import ru.Fronzter.MindAc.api.events.MindAIFlagEvent;
 import ru.Fronzter.MindAc.entity.PlayerEntity;
 import ru.Fronzter.MindAc.util.MoshiFactory;
+
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.HashMap;
@@ -49,7 +50,6 @@ public class AnalysisService {
         LazyHolder.CLIENT.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                // убраны логеры
             }
 
             @Override
@@ -86,9 +86,22 @@ public class AnalysisService {
         long windowMillis = plugin.getConfig().getLong("ml-check.window", 600) * 1000L;
 
         plugin.getDatabaseService().countRecentViolationsAsync(entity.getUUID(), windowMillis, oldCount -> {
-
             int newTotalViolations = oldCount + 1;
             int violationThreshold = plugin.getConfig().getInt("ml-check.violation-threshold", 3);
+
+            Player player = Bukkit.getPlayer(entity.getUUID());
+            if (player == null) {
+                entity.setProcessingFlag(false);
+                return;
+            }
+
+            MindAIFlagEvent flagEvent = new MindAIFlagEvent(false, player, probability, newTotalViolations, violationThreshold);
+            Bukkit.getPluginManager().callEvent(flagEvent);
+
+            if (flagEvent.isCancelled()) {
+                entity.setProcessingFlag(false);
+                return;
+            }
 
             sendAlert(entity, probability, newTotalViolations, violationThreshold);
 
@@ -115,7 +128,7 @@ public class AnalysisService {
         String formattedProb = String.format("%.2f%%", probability * 100.0D);
         String vlString = currentVl + "/" + maxVl;
 
-        String finalMessage = ChatColor.translateAlternateColorCodes('&',
+        String finalMessage = org.bukkit.ChatColor.translateAlternateColorCodes('&',
                 message.replace("%player%", entity.getName())
                         .replace("%probability%", formattedProb)
                         .replace("%vl%", vlString));
