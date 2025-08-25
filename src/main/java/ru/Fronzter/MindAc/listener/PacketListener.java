@@ -14,9 +14,9 @@ import ru.Fronzter.MindAc.entity.Frame;
 import ru.Fronzter.MindAc.entity.PlayerEntity;
 import ru.Fronzter.MindAc.registry.PlayerRegistry;
 import ru.Fronzter.MindAc.service.AnalysisService;
+import java.util.List;
 
 public class PacketListener extends PacketListenerAbstract {
-    private static final int COMBAT_ANALYSIS_DURATION_TICKS = 200;
 
     private final boolean isMlCheckEnabled;
     private final int framesToAnalyze;
@@ -36,28 +36,8 @@ public class PacketListener extends PacketListenerAbstract {
         PlayerEntity entity = PlayerRegistry.getPlayer(user.getUUID());
         if (entity == null) return;
 
-        if (event.getPacketType() == PacketType.Play.Client.INTERACT_ENTITY) {
-            WrapperPlayClientInteractEntity interact = new WrapperPlayClientInteractEntity(event);
-            if (interact.getAction() == WrapperPlayClientInteractEntity.InteractAction.ATTACK) {
-                Player bukkitPlayer = Bukkit.getPlayer(user.getUUID());
-                if (bukkitPlayer != null) {
-                    Entity target = bukkitPlayer.getWorld().getEntities().stream()
-                            .filter(e -> e.getEntityId() == interact.getEntityId())
-                            .findFirst().orElse(null);
-
-                    if (target instanceof Player) {
-                        entity.setCombatRecordingTicks(COMBAT_ANALYSIS_DURATION_TICKS);
-                    }
-                }
-            }
-        }
-
         if (WrapperPlayClientPlayerFlying.isFlying(event.getPacketType())) {
             WrapperPlayClientPlayerFlying flying = new WrapperPlayClientPlayerFlying(event);
-
-            if (entity.getCombatRecordingTicks() > 0) {
-                entity.setCombatRecordingTicks(entity.getCombatRecordingTicks() - 1);
-            }
 
             if (flying.hasRotationChanged()) {
                 Frame frame = new Frame(
@@ -65,19 +45,34 @@ public class PacketListener extends PacketListenerAbstract {
                         flying.getLocation().getPitch() - entity.getLastPitch()
                 );
 
-                if (entity.getCombatRecordingTicks() > 0) {
-                    entity.getFrames().add(frame);
+                List<Frame> frames = entity.getFrames();
+                frames.add(frame);
 
-                    if (entity.getFrames().size() >= framesToAnalyze) {
-                        AnalysisService.analyze(entity);
-                        entity.getFrames().clear();
-                    }
-                }
-                else if (!entity.getFrames().isEmpty()) {
-                    entity.getFrames().clear();
+                while (frames.size() > framesToAnalyze) {
+                    frames.remove(0);
                 }
             }
             updateLastLocation(entity, flying.getLocation());
+        }
+
+        if (event.getPacketType() == PacketType.Play.Client.INTERACT_ENTITY) {
+            WrapperPlayClientInteractEntity interact = new WrapperPlayClientInteractEntity(event);
+            if (interact.getAction() == WrapperPlayClientInteractEntity.InteractAction.ATTACK) {
+
+                Player bukkitPlayer = Bukkit.getPlayer(user.getUUID());
+                if (bukkitPlayer != null) {
+                    Entity target = bukkitPlayer.getWorld().getEntities().stream()
+                            .filter(e -> e.getEntityId() == interact.getEntityId())
+                            .findFirst().orElse(null);
+
+                    if (target instanceof Player) {
+                        if (entity.getFrames().size() >= framesToAnalyze) {
+                            AnalysisService.analyze(entity);
+                            entity.getFrames().clear();
+                        }
+                    }
+                }
+            }
         }
     }
 
