@@ -6,7 +6,6 @@ import com.squareup.moshi.Types;
 import okhttp3.*;
 import org.bukkit.Bukkit;
 import ru.Fronzter.MindAc.MindAI;
-
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.HashMap;

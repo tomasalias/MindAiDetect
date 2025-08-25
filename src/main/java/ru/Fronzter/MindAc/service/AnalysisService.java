@@ -10,7 +10,6 @@ import org.bukkit.entity.Player;
 import ru.Fronzter.MindAc.MindAI;
 import ru.Fronzter.MindAc.entity.PlayerEntity;
 import ru.Fronzter.MindAc.util.MoshiFactory;
-
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.HashMap;
@@ -36,7 +35,6 @@ public class AnalysisService {
             JsonAdapter<Map<String, Object>> adapter = moshi.adapter(mapType);
             json = adapter.toJson(dataToSend);
         } catch (Exception e) {
-            MindAI.getInstance().getLogger().warning("Ошибка при сериализации данных для анализа: " + e.getMessage());
             return;
         }
 
@@ -51,14 +49,13 @@ public class AnalysisService {
         LazyHolder.CLIENT.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                MindAI.getInstance().getLogger().warning("Не удалось отправить данные на анализ: " + e.getMessage());
+                // убраны логеры
             }
 
             @Override
             public void onResponse(Call call, Response response) {
                 try (ResponseBody responseBody = response.body()) {
                     if (!response.isSuccessful() || responseBody == null) {
-                        MindAI.getInstance().getLogger().warning("Получен некорректный ответ от сервера анализа: " + response.code());
                         return;
                     }
                     String bodyString = responseBody.string();
@@ -67,31 +64,48 @@ public class AnalysisService {
                         double probability = result.get("cheat_probability");
                         Bukkit.getScheduler().runTask(MindAI.getInstance(), () -> handleResult(entity, probability));
                     }
-                } catch (Exception ex) {
-                    MindAI.getInstance().getLogger().severe("Ошибка при обработке ответа от сервера анализа: " + ex.getMessage());
+                } catch (Exception ignored) {
                 }
             }
         });
     }
 
     private static void handleResult(PlayerEntity entity, double probability) {
-        double classificationThreshold = MindAI.getInstance().getConfig().getDouble("ml-check.classification-threshold");
-        if (probability > classificationThreshold) {
-            sendAlert(entity, probability);
-            executeViolationCommand(entity, probability);
-            entity.getViolationLogs().put(System.currentTimeMillis(), 1);
+        MindAI plugin = MindAI.getInstance();
+        double classificationThreshold = plugin.getConfig().getDouble("ml-check.classification-threshold");
+
+        if (probability <= classificationThreshold) {
+            return;
         }
-        long windowMillis = MindAI.getInstance().getConfig().getLong("ml-check.window", 600) * 1000L;
-        entity.getViolationLogs().entrySet().removeIf(entry -> System.currentTimeMillis() - entry.getKey() > windowMillis);
-        int totalViolations = entity.getViolationLogs().values().stream().mapToInt(Integer::intValue).sum();
-        double violationThreshold = MindAI.getInstance().getConfig().getDouble("ml-check.violation-threshold");
-        if (totalViolations >= violationThreshold) {
-            punishPlayer(entity);
-            entity.getViolationLogs().clear();
+
+        if (entity.isProcessingFlag()) {
+            return;
         }
+        entity.setProcessingFlag(true);
+
+        long windowMillis = plugin.getConfig().getLong("ml-check.window", 600) * 1000L;
+
+        plugin.getDatabaseService().countRecentViolationsAsync(entity.getUUID(), windowMillis, oldCount -> {
+
+            int newTotalViolations = oldCount + 1;
+            int violationThreshold = plugin.getConfig().getInt("ml-check.violation-threshold", 3);
+
+            sendAlert(entity, probability, newTotalViolations, violationThreshold);
+
+            plugin.getDatabaseService().logViolationAsync(entity.getUUID(), entity.getName(), probability);
+
+            if (newTotalViolations >= violationThreshold) {
+                punishPlayer(entity, () -> {
+                    plugin.getDatabaseService().clearRecentViolationsAsync(entity.getUUID(), windowMillis);
+                    entity.setProcessingFlag(false);
+                });
+            } else {
+                entity.setProcessingFlag(false);
+            }
+        });
     }
 
-    private static void sendAlert(PlayerEntity entity, double probability) {
+    private static void sendAlert(PlayerEntity entity, double probability, int currentVl, int maxVl) {
         if (!MindAI.getInstance().getConfig().getBoolean("alerts.enabled", true)) {
             return;
         }
@@ -99,31 +113,34 @@ public class AnalysisService {
         if (message == null || message.isEmpty()) return;
 
         String formattedProb = String.format("%.2f%%", probability * 100.0D);
+        String vlString = currentVl + "/" + maxVl;
 
-        String finalMessage = ChatColor.translateAlternateColorCodes('&', message.replace("%player%", entity.getName()).replace("%probability%", formattedProb));
+        String finalMessage = ChatColor.translateAlternateColorCodes('&',
+                message.replace("%player%", entity.getName())
+                        .replace("%probability%", formattedProb)
+                        .replace("%vl%", vlString));
+
         String permission = MindAI.getInstance().getConfig().getString("alerts.permission", "mindai.alerts");
         for (Player admin : Bukkit.getOnlinePlayers()) {
-            if (admin.hasPermission(permission)) {
+            if (admin.hasPermission(permission) && MindAI.getInstance().areAlertsEnabledFor(admin.getUniqueId())) {
                 admin.sendMessage(finalMessage);
             }
         }
     }
 
-    private static void executeViolationCommand(PlayerEntity entity, double probability) {
-        String command = MindAI.getInstance().getConfig().getString("alerts.violation-command", "");
-        if (command.isEmpty()) return;
-
-        String formattedProb = String.format("%.2f%%", probability * 100.0D);
-
-        String finalCommand = ChatColor.translateAlternateColorCodes('&', command.replace("%player%", entity.getName()).replace("%probability%", formattedProb));
-        Bukkit.getScheduler().runTask(MindAI.getInstance(), () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
-    }
-
-    private static void punishPlayer(PlayerEntity entity) {
+    private static void punishPlayer(PlayerEntity entity, Runnable afterPunishment) {
         String command = MindAI.getInstance().getConfig().getString("punishment");
-        if (command == null || command.isEmpty()) return;
+        if (command == null || command.isEmpty()) {
+            afterPunishment.run();
+            return;
+        }
+
         String finalCommand = command.replace("%player%", entity.getName());
-        Bukkit.getScheduler().runTask(MindAI.getInstance(), () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
+
+        Bukkit.getScheduler().runTask(MindAI.getInstance(), () -> {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
+            afterPunishment.run();
+        });
     }
 
     private static class LazyHolder {
