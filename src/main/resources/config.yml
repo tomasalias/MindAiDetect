@@ -1,17 +1,37 @@
-api-key: "Ключ" # Получить @Fronzter telegram или mind-ai.tech (сайт)
-
+# Ваш уникальный API-ключ. Его можно получить в Telegram @Fronzter или на сайте mind-ai.tech
+api-key: "key-ai"
 api-endpoints:
   license-server: "http://license.mind-ai.tech"
   analysis-server: "http://api.mind-ai.tech"
+
 ml-check:
+  # Включить или выключить анализ данных игроков? (true/false)
   enabled: true
-  frames-to-analyze: 150 # Не менять иначе 0 детекта будет!
+  frames-to-analyze: 150
+  # Порог уверенности. Если вероятность читерства от нейросети ниже этого значения,
+  # флаг будет проигнорирован. (0.80 = 80% уверенности)
   classification-threshold: 0.80
+  # Количество нарушений (VL), необходимое для автоматического наказания.
+  # Это главный параметр для настройки наказаний.
+  # Для теста можно поставить 1, для реального сервера рекомендуется 3-10.
   violation-threshold: 3
+
+  # Временное "окно" в секундах, в течение которого суммируются нарушения (VL).
+  # Например, если 600, то плагин считает нарушения за последние 10 минут.
   window: 600
+
+# Настройки оповещений для администрации
 alerts:
+  # Включить или выключить оповещения в чат для администраторов? (true/false)
   enabled: true
+  # Право, необходимое для получения оповещений.
   permission: "mindai.alerts"
-  message: "&8[&3MindAI&8] &f%player% &bподозревается в читерстве &8(&3%probability%&8)"
-  violation-command: "kick %player% cheat"
-  punishment: "kick %player% cheat"
+
+  # Формат сообщения об оповещении.
+  # Доступные %player%, %probability%, %vl%
+  message: "&8[&3MindAI&8] &f%player% &bподозревается в читерстве &8(&3%probability% | VL: %vl%&8)"
+
+# Команда, которая будет выполнена от имени консоли при достижении violation-threshold.
+# НЕ ИСПОЛЬЗУЙТЕ / в начале команды.
+# Доступные %player%
+punishment: "ban %player% Ваш аккаунт был заблокирован системой MindAi за нарушение правил."

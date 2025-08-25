@@ -7,3 +7,13 @@ permissions:
   mindai.alerts:
     description: Разрешает получать оповещения от системы анализа
     default: op
+  mindai.admin:
+    description: Разрешает использовать административные команды плагина
+    default: op
+
+commands:
+  mindai:
+    description: Основная команда плагина MindAI
+    aliases: [mac]
+    permission: mindai.admin
+    usage: "/<command> [reload|alerts|history]"
