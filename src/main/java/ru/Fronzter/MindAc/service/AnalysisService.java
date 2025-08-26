@@ -5,6 +5,7 @@ import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
 import okhttp3.*;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import ru.Fronzter.MindAc.MindAI;
 import ru.Fronzter.MindAc.api.events.MindAIFlagEvent;
@@ -47,7 +48,7 @@ public class AnalysisService {
         RequestBody body = RequestBody.create(json, MediaType.parse("application/json; charset=utf-8"));
         Request request = new Request.Builder().url(url).post(body).build();
 
-        LazyHolder.CLIENT.newCall(request).enqueue(new Callback() {
+        MindAI.getInstance().getHttpClient().newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
             }
@@ -104,7 +105,6 @@ public class AnalysisService {
             }
 
             sendAlert(entity, probability, newTotalViolations, violationThreshold);
-
             plugin.getDatabaseService().logViolationAsync(entity.getUUID(), entity.getName(), probability);
 
             if (newTotalViolations >= violationThreshold) {
@@ -128,7 +128,7 @@ public class AnalysisService {
         String formattedProb = String.format("%.2f%%", probability * 100.0D);
         String vlString = currentVl + "/" + maxVl;
 
-        String finalMessage = org.bukkit.ChatColor.translateAlternateColorCodes('&',
+        String finalMessage = ChatColor.translateAlternateColorCodes('&',
                 message.replace("%player%", entity.getName())
                         .replace("%probability%", formattedProb)
                         .replace("%vl%", vlString));
@@ -149,7 +149,6 @@ public class AnalysisService {
         }
 
         String finalCommand = command.replace("%player%", entity.getName());
-
         Bukkit.getScheduler().runTask(MindAI.getInstance(), () -> {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
             afterPunishment.run();
@@ -157,7 +156,6 @@ public class AnalysisService {
     }
 
     private static class LazyHolder {
-        private static final OkHttpClient CLIENT = new OkHttpClient();
         private static final Moshi MOSHI = MoshiFactory.getInstance();
         private static final Type MAP_TYPE = Types.newParameterizedType(Map.class, String.class, Double.class);
         private static final JsonAdapter<Map<String, Double>> MAP_ADAPTER = MOSHI.adapter(MAP_TYPE);

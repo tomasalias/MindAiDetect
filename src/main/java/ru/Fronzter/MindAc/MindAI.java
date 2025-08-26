@@ -13,12 +13,14 @@ import ru.Fronzter.MindAc.listener.ConnectionListener;
 import ru.Fronzter.MindAc.listener.PacketListener;
 import ru.Fronzter.MindAc.service.DatabaseService;
 import ru.Fronzter.MindAc.service.HeartbeatService;
+
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public final class MindAI extends JavaPlugin {
     private static MindAI instance;
@@ -27,11 +29,19 @@ public final class MindAI extends JavaPlugin {
     private String publicServerIp = null;
     private final Set<UUID> alertsDisabledAdmins = ConcurrentHashMap.newKeySet();
     private DatabaseService databaseService;
+    private OkHttpClient httpClient;
 
     @Override
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
+
+        this.httpClient = new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
+                .writeTimeout(10, TimeUnit.SECONDS)
+                .build();
+
         databaseService = new DatabaseService(this);
         databaseService.init();
         String apiKey = getConfig().getString("api-key", "");
@@ -50,16 +60,16 @@ public final class MindAI extends JavaPlugin {
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
             try {
                 Request ipRequest = new Request.Builder().url("https://api.ipify.org").build();
-                try (Response ipResponse = LazyHolder.CLIENT.newCall(ipRequest).execute()) {
+                try (Response ipResponse = this.httpClient.newCall(ipRequest).execute()) {
                     if (ipResponse.isSuccessful() && ipResponse.body() != null) {
                         this.publicServerIp = ipResponse.body().string().trim();
                         validateLicense(apiKey, this.publicServerIp);
                     } else {
-                        disablePlugin();
+                        disablePluginWithMessage();
                     }
                 }
             } catch (Exception e) {
-                disablePlugin();
+                disablePluginWithMessage();
             }
         });
     }
@@ -67,7 +77,7 @@ public final class MindAI extends JavaPlugin {
     private void validateLicense(String apiKey, String serverIp) {
         String licenseUrl = getConfig().getString("api-endpoints.license-server", "") + "/validate";
         if (licenseUrl.isEmpty() || licenseUrl.equals("/validate")) {
-            disablePlugin();
+            disablePluginWithMessage();
             return;
         }
         try {
@@ -77,7 +87,7 @@ public final class MindAI extends JavaPlugin {
             String json = LazyHolder.JSON_ADAPTER.toJson(data);
             RequestBody body = RequestBody.create(json, MediaType.parse("application/json; charset=utf-8"));
             Request request = new Request.Builder().url(licenseUrl).post(body).build();
-            try (Response response = LazyHolder.CLIENT.newCall(request).execute()) {
+            try (Response response = this.httpClient.newCall(request).execute()) {
                 String responseBody = response.body() != null ? response.body().string() : "";
                 if (response.isSuccessful()) {
                     Map<String, Object> result = LazyHolder.RESPONSE_ADAPTER.fromJson(responseBody);
@@ -85,18 +95,18 @@ public final class MindAI extends JavaPlugin {
                         isLicenseValid = true;
                         Bukkit.getScheduler().runTask(this, this::initializePluginServices);
                     } else {
-                        disablePlugin();
+                        disablePluginWithMessage();
                     }
                 } else {
-                    disablePlugin();
+                    disablePluginWithMessage();
                 }
             }
         } catch (Exception e) {
-            disablePlugin();
+            disablePluginWithMessage();
         }
     }
 
-    private void disablePlugin() {
+    private void disablePluginWithMessage() {
         Bukkit.getScheduler().runTask(this, () -> getServer().getPluginManager().disablePlugin(this));
     }
 
@@ -106,7 +116,7 @@ public final class MindAI extends JavaPlugin {
         PacketEvents.getAPI().load();
         PacketEvents.getAPI().getEventManager().registerListeners(new ConnectionListener(), new PacketListener());
         PacketEvents.getAPI().init();
-        long interval = 20L * 60 * 5;
+        long interval = 20L * 60 * 5; // 5 минут
         heartbeatTaskID = Bukkit.getScheduler().runTaskTimerAsynchronously(this, HeartbeatService::sendHeartbeat, 100L, interval).getTaskId();
     }
 
@@ -118,6 +128,12 @@ public final class MindAI extends JavaPlugin {
         if (heartbeatTaskID != -1) {
             Bukkit.getScheduler().cancelTask(heartbeatTaskID);
         }
+
+        if (httpClient != null) {
+            httpClient.dispatcher().executorService().shutdown();
+            httpClient.connectionPool().evictAll();
+        }
+
         try {
             if (PacketEvents.getAPI() != null && PacketEvents.getAPI().isLoaded()) {
                 PacketEvents.getAPI().terminate();
@@ -147,9 +163,9 @@ public final class MindAI extends JavaPlugin {
     public static boolean isLicenseActive() { return isLicenseValid; }
     public String getPublicServerIp() { return this.publicServerIp; }
     public DatabaseService getDatabaseService() { return databaseService; }
+    public OkHttpClient getHttpClient() { return this.httpClient; }
 
     private static class LazyHolder {
-        private static final OkHttpClient CLIENT = new OkHttpClient();
         private static final Moshi MOSHI = new Moshi.Builder().build();
         private static final Type MAP_STRING_STRING_TYPE = Types.newParameterizedType(Map.class, String.class, String.class);
         private static final JsonAdapter<Map<String, String>> JSON_ADAPTER = MOSHI.adapter(MAP_STRING_STRING_TYPE);
