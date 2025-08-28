@@ -13,7 +13,7 @@ import ru.Fronzter.MindAc.listener.ConnectionListener;
 import ru.Fronzter.MindAc.listener.PacketListener;
 import ru.Fronzter.MindAc.service.DatabaseService;
 import ru.Fronzter.MindAc.service.HeartbeatService;
-
+import ru.Fronzter.MindAc.service.ViolationManager;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +30,7 @@ public final class MindAI extends JavaPlugin {
     private final Set<UUID> alertsDisabledAdmins = ConcurrentHashMap.newKeySet();
     private DatabaseService databaseService;
     private OkHttpClient httpClient;
+    private ViolationManager violationManager;
 
     @Override
     public void onEnable() {
@@ -44,6 +45,9 @@ public final class MindAI extends JavaPlugin {
 
         databaseService = new DatabaseService(this);
         databaseService.init();
+
+        this.violationManager = new ViolationManager(this);
+
         String apiKey = getConfig().getString("api-key", "");
         if (apiKey.isEmpty() || apiKey.equals("CHANGE-ME-TO-YOUR-API-KEY")) {
             getServer().getPluginManager().disablePlugin(this);
@@ -65,11 +69,11 @@ public final class MindAI extends JavaPlugin {
                         this.publicServerIp = ipResponse.body().string().trim();
                         validateLicense(apiKey, this.publicServerIp);
                     } else {
-                        disablePluginWithMessage();
+                        disablePlugin();
                     }
                 }
             } catch (Exception e) {
-                disablePluginWithMessage();
+                disablePlugin();
             }
         });
     }
@@ -77,7 +81,7 @@ public final class MindAI extends JavaPlugin {
     private void validateLicense(String apiKey, String serverIp) {
         String licenseUrl = getConfig().getString("api-endpoints.license-server", "") + "/validate";
         if (licenseUrl.isEmpty() || licenseUrl.equals("/validate")) {
-            disablePluginWithMessage();
+            disablePlugin();
             return;
         }
         try {
@@ -95,18 +99,18 @@ public final class MindAI extends JavaPlugin {
                         isLicenseValid = true;
                         Bukkit.getScheduler().runTask(this, this::initializePluginServices);
                     } else {
-                        disablePluginWithMessage();
+                        disablePlugin();
                     }
                 } else {
-                    disablePluginWithMessage();
+                    disablePlugin();
                 }
             }
         } catch (Exception e) {
-            disablePluginWithMessage();
+            disablePlugin();
         }
     }
 
-    private void disablePluginWithMessage() {
+    private void disablePlugin() {
         Bukkit.getScheduler().runTask(this, () -> getServer().getPluginManager().disablePlugin(this));
     }
 
@@ -116,7 +120,7 @@ public final class MindAI extends JavaPlugin {
         PacketEvents.getAPI().load();
         PacketEvents.getAPI().getEventManager().registerListeners(new ConnectionListener(), new PacketListener());
         PacketEvents.getAPI().init();
-        long interval = 20L * 60 * 5; // 5 минут
+        long interval = 20L * 60 * 5;
         heartbeatTaskID = Bukkit.getScheduler().runTaskTimerAsynchronously(this, HeartbeatService::sendHeartbeat, 100L, interval).getTaskId();
     }
 
@@ -128,12 +132,10 @@ public final class MindAI extends JavaPlugin {
         if (heartbeatTaskID != -1) {
             Bukkit.getScheduler().cancelTask(heartbeatTaskID);
         }
-
         if (httpClient != null) {
             httpClient.dispatcher().executorService().shutdown();
             httpClient.connectionPool().evictAll();
         }
-
         try {
             if (PacketEvents.getAPI() != null && PacketEvents.getAPI().isLoaded()) {
                 PacketEvents.getAPI().terminate();
@@ -164,6 +166,7 @@ public final class MindAI extends JavaPlugin {
     public String getPublicServerIp() { return this.publicServerIp; }
     public DatabaseService getDatabaseService() { return databaseService; }
     public OkHttpClient getHttpClient() { return this.httpClient; }
+    public ViolationManager getViolationManager() { return this.violationManager; }
 
     private static class LazyHolder {
         private static final Moshi MOSHI = new Moshi.Builder().build();

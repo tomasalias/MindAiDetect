@@ -7,10 +7,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.util.StringUtil;
 import ru.Fronzter.MindAc.MindAI;
-import ru.Fronzter.MindAc.command.subcommands.AlertsCommand;
-import ru.Fronzter.MindAc.command.subcommands.HistoryCommand;
-import ru.Fronzter.MindAc.command.subcommands.ReloadCommand;
-import ru.Fronzter.MindAc.command.subcommands.StatsCommand;
+import ru.Fronzter.MindAc.command.subcommands.*;
+
 import java.util.*;
 
 public class CommandManager implements CommandExecutor, TabCompleter {
@@ -23,6 +21,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
         registerSubCommand(new AlertsCommand(plugin));
         registerSubCommand(new HistoryCommand(plugin));
         registerSubCommand(new StatsCommand(plugin));
+        registerSubCommand(new PunishCommand(plugin));
     }
 
     private void registerSubCommand(SubCommand subCommand) {
