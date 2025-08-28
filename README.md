@@ -1,11 +1,19 @@
-MindAI — ЭЙ АЙ античит для Minecraft​  MindAI — это инновационный античит-плагин для Minecraft, использующий технологии искусственного интеллекта и машинного обучения для обнаружения читеров. В отличие от классических античитов, основанных на фиксированных проверках, MindAI анализирует поведение игроков и динамически выявляет подозрительные действия. MindAI работает стабильно с 99% аптаймом — античит всегда онлайн и готов ловить читеров.
+MindAI — AI-powered Anti-Cheat for Minecraft
 
-🚀 Особенности:​
+MindAI is an innovative Minecraft anti-cheat plugin that leverages artificial intelligence and machine learning to detect cheaters. Unlike traditional anti-cheats based on static checks, MindAI dynamically analyzes player behavior to identify suspicious actions in real time.
 
-🤖 Нейросеть — обучается на реальных данных о честных игроках и читерах.
-⚡ Реальное время — анализирует удары игроков без задержек.
-🔍 Высокая точность — меньше ложных срабатываний по сравнению с обычными античитами.
-⚙️ Гибкая настройка — конфиги под любые режимы (анархия, мини-игры, выживание).
-🌍 Open Source — проект полностью открыт для сообщества.
-🔗 Интеграция с существующими античитами для усиленной защиты.
-📂 Сайт: https://www.mind-ai.tech/
+MindAI runs reliably with 99% uptime — always online and ready to catch cheaters.
+
+Features:
+
+Neural Network – trained on real data from both legitimate players and cheaters.
+
+⚡ Real-time Analysis – processes player combat actions instantly without delays.
+
+High Accuracy – fewer false positives compared to conventional anti-cheats.
+
+⚙️ Flexible Configuration – customizable for any server type (Anarchy, Minigames, Survival).
+
+Open Source – fully transparent and open to the community.
+
+Integration – can work alongside existing anti-cheats for enhanced protection.
