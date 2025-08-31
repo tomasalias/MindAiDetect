@@ -36,6 +36,8 @@ dependencies {
     implementation "org.ejml:ejml-ddense:0.41"
     implementation "org.ejml:ejml-simple:0.41"
     implementation "com.zaxxer:HikariCP:5.1.0"
+    compileOnly("org.projectlombok:lombok:1.18.38")
+    annotationProcessor("org.projectlombok:lombok:1.18.38")
 }
 
 

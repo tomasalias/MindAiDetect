@@ -1,20 +1,28 @@
 package ru.Fronzter.MindAc.util;
 
-import com.squareup.moshi.FromJson;
+import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 import com.squareup.moshi.ToJson;
+import com.squareup.moshi.FromJson;
+import com.squareup.moshi.Types;
+import java.lang.reflect.Type;
+import java.util.Map;
 import java.util.UUID;
 
 public class MoshiFactory {
-    private static Moshi instance;
+    private static final Moshi INSTANCE = new Moshi.Builder()
+            .add(new UUIDAdapter())
+            .build();
+
+    private static final Type MAP_TYPE = Types.newParameterizedType(Map.class, String.class, Object.class);
+    private static final JsonAdapter<Map<String, Object>> ADAPTER = INSTANCE.adapter(MAP_TYPE);
 
     public static Moshi getInstance() {
-        if (instance == null) {
-            instance = new Moshi.Builder()
-                    .add(new UUIDAdapter())
-                    .build();
-        }
-        return instance;
+        return INSTANCE;
+    }
+
+    public static JsonAdapter<Map<String, Object>> getAdapter() {
+        return ADAPTER;
     }
 
     public static class UUIDAdapter {
