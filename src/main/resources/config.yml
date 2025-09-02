@@ -1,9 +1,15 @@
-# Ваш уникальный API-ключ. Telegram @Fronzter Website www.mind-ai.tech
-api-key: "key-ai"
+# Your Gemini API key from Google AI Studio
+gemini-api-key: "YOUR_GEMINI_API_KEY_HERE"
 
-api-endpoints:
-  license-server: "http://license.mind-ai.tech"
-  analysis-server: "http://api.mind-ai.tech"
+# Gemini API settings
+gemini-settings:
+  model: "gemini-1.5-flash"
+  temperature: 0.3
+  max-tokens: 100
+  
+# Enable/disable the license validation (set to false since we're using Gemini directly)
+license-validation:
+  enabled: false
 
 # Настройки модуля машинного обучения (ML)
 ml-check:

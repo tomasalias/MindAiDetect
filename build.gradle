@@ -13,6 +13,10 @@ repositories {
         url = "https://repo.papermc.io/repository/maven-public/"
     }
     maven {
+        name = "dmulloy2-repo"
+        url = "https://repo.dmulloy2.net/repository/public/"
+    }
+    maven {
         name = "sonatype"
         url = "https://oss.sonatype.org/content/groups/public/"
     }
@@ -27,14 +31,11 @@ repositories {
 
 dependencies {
     compileOnly "com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT"
+    compileOnly 'net.dmulloy2:ProtocolLib:5.3.0'
 
-    implementation "com.github.retrooper:packetevents-spigot:2.7.0"
     implementation "com.squareup.moshi:moshi:1.15.0"
     implementation "com.squareup.moshi:moshi-adapters:1.15.0"
     implementation "com.squareup.okhttp3:okhttp:4.12.0"
-    implementation "org.ejml:ejml-core:0.41"
-    implementation "org.ejml:ejml-ddense:0.41"
-    implementation "org.ejml:ejml-simple:0.41"
     implementation "com.zaxxer:HikariCP:5.1.0"
     compileOnly("org.projectlombok:lombok:1.18.38")
     annotationProcessor("org.projectlombok:lombok:1.18.38")
@@ -71,10 +72,8 @@ processResources {
 tasks.named('shadowJar') {
     archiveClassifier.set('all')
 
-    relocate 'com.github.retrooper.packetevents', 'ru.Fronzter.shadow.packetevents'
     relocate 'com.squareup.moshi', 'ru.Fronzter.shadow.moshi'
     relocate 'okhttp3', 'ru.Fronzter.shadow.okhttp'
-    relocate 'org.ejml', 'ru.Fronzter.shadow.ejml'
 
     minimize()
 }
