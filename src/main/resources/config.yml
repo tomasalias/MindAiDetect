@@ -11,40 +11,40 @@ gemini-settings:
 license-validation:
   enabled: false
 
-# Настройки модуля машинного обучения (ML)
+# Machine Learning (ML) module settings
 ml-check:
   enabled: true
-  frames-to-analyze: 150 # Не менять!
-  # Порог уверенности. Рекомендуется 0.80-0.95 для уменьшения ложных срабатываний.
+  frames-to-analyze: 150 # Do not change!
+  # Confidence threshold. Recommended 0.80-0.95 to reduce false positives.
   classification-threshold: 0.80
 
-  # Сколько VL добавляется за один флаг от античита.
+  # How much VL is added for one flag from the anticheat.
   vl-increment: 0.5
 
-  # Порог VL, при достижении которого игрок будет наказан.
+  # VL threshold at which the player will be punished.
   violation-threshold: 2
 
-  # Время жизни одного флага в секундах.
-  # Через это время 1 флаг (vl-increment) полностью исчезнет. (600 = 10 минут)
-  # VL будет уменьшаться постепенно в течение этого времени.
+  # Lifetime of one flag in seconds.
+  # After this time 1 flag (vl-increment) will completely disappear. (600 = 10 minutes)
+  # VL will decrease gradually over this time.
   window: 600
 
-# Настройки оповещений для администрации
+# Alert settings for administration
 alerts:
   enabled: true
   permission: "mindai.alerts"
-  # Формат сообщения. %vl% теперь будет показывать текущий VL и порог (например, 6.6/7) раньше было обычно 1/1 типо
-  message: "&8[&3MindAI&8] &f%player% &bподозревается в читерстве &8(&3%probability% | VL: %vl%&8)"
+  # Message format. %vl% will now show current VL and threshold (e.g., 6.6/7) instead of the usual 1/1
+  message: "&8[&3MindAI&8] &f%player% &bis suspected of cheating &8(&3%probability% | VL: %vl%&8)"
 
-# АВТОМАТИЧЕСКОЕ НАКАЗАНИЕ (при достижении VL)
+# AUTOMATIC PUNISHMENT (when VL threshold is reached)
 auto-punishment:
-  # Режим автоматического наказания: INSTANT, ANIMATED, ALERTS_ONLY
-  # INSTANT это без анимки бан ANIMATED анимка ALERTS_ONLY просто алерты
+  # Automatic punishment mode: INSTANT, ANIMATED, ALERTS_ONLY
+  # INSTANT is ban without animation, ANIMATED with animation, ALERTS_ONLY just alerts
   mode: INSTANT
-  # Команда, которая будет выполнена, если выбран режим INSTANT
-  command: "ban %player% Ваш аккаунт был заблокирован системой MindAi за нарушение правил."
+  # Command to be executed if INSTANT mode is selected
+  command: "ban %player% Your account has been blocked by MindAi system for violating the rules."
 
-# АНИМАЦИЯ НАКАЗАНИЯ (для /mindai punish и режима ANIMATED)
+# PUNISHMENT ANIMATION (for /mindai punish and ANIMATED mode)
 punishment-animation:
   enabled: true
   duration: 5
@@ -58,5 +58,5 @@ punishment-animation:
   sounds:
     start-sound: ENTITY_EVOKER_PREPARE_SUMMON
     end-sound: ENTITY_WITHER_DEATH
-  # Команда, которая будет выполнена В КОНЦЕ АНИМАЦИИ
-  command: "kick %player% &fВы были изгнаны силой эй ай"
+  # Command to be executed AT THE END OF THE ANIMATION
+  command: "kick %player% &fYou have been expelled by AI force"

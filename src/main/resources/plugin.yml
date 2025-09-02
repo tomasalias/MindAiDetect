@@ -6,15 +6,15 @@ author: Fronzter
 depend: [ProtocolLib]
 permissions:
   mindai.alerts:
-    description: Разрешает получать оповещения от системы анализа
+    description: Allows receiving alerts from the analysis system
     default: op
   mindai.admin:
-    description: Разрешает использовать административные команды плагина
+    description: Allows using administrative commands of the plugin
     default: op
 
 commands:
   mindai:
-    description: Основная команда плагина MindAI
+    description: Main command of the MindAI plugin
     aliases: [mac]
     permission: mindai.admin
     usage: "/<command> [reload|alerts|history]"
