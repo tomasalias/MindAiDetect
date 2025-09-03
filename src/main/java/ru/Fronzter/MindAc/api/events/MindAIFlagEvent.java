@@ -1,12 +1,13 @@
 package ru.Fronzter.MindAc.api.events;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
+
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -36,7 +37,6 @@ public final class MindAIFlagEvent extends Event implements Cancellable {
         return handlers;
     }
 
-    @SuppressWarnings("unused")
     public static HandlerList getHandlerList() {
         return handlers;
     }

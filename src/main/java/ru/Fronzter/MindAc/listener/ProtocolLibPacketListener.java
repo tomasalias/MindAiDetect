@@ -1,19 +1,21 @@
 package ru.Fronzter.MindAc.listener;
 
+import java.util.List;
+
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+
 import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.wrappers.EnumWrappers;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
+
 import ru.Fronzter.MindAc.MindAI;
 import ru.Fronzter.MindAc.entity.Frame;
 import ru.Fronzter.MindAc.entity.PlayerEntity;
 import ru.Fronzter.MindAc.registry.PlayerRegistry;
 import ru.Fronzter.MindAc.service.GeminiService;
-
-import java.util.List;
 
 public class ProtocolLibPacketListener extends PacketAdapter {
 
@@ -22,10 +24,8 @@ public class ProtocolLibPacketListener extends PacketAdapter {
 
     public ProtocolLibPacketListener(MindAI plugin) {
         super(plugin, ListenerPriority.NORMAL, 
-              PacketType.Play.Client.POSITION, 
               PacketType.Play.Client.POSITION_LOOK, 
               PacketType.Play.Client.LOOK,
-              PacketType.Play.Client.FLYING,
               PacketType.Play.Client.USE_ENTITY);
         
         this.isMlCheckEnabled = plugin.getConfig().getBoolean("ml-check.enabled", false);
@@ -48,48 +48,77 @@ public class ProtocolLibPacketListener extends PacketAdapter {
         if (packetType == PacketType.Play.Client.POSITION_LOOK || 
             packetType == PacketType.Play.Client.LOOK) {
             
-            float yaw = event.getPacket().getFloat().read(0);
-            float pitch = event.getPacket().getFloat().read(1);
+            try {
+                float yaw = event.getPacket().getFloat().read(0);
+                float pitch = event.getPacket().getFloat().read(1);
 
-            Frame frame = new Frame(
-                yaw - entity.getLastYaw(),
-                pitch - entity.getLastPitch()
-            );
+                Frame frame = new Frame(
+                    yaw - entity.getLastYaw(),
+                    pitch - entity.getLastPitch()
+                );
 
-            List<Frame> frames = entity.getFrames();
-            frames.add(frame);
+                List<Frame> frames = entity.getFrames();
+                frames.add(frame);
 
-            while (frames.size() > framesToAnalyze) {
-                frames.remove(0);
+                while (frames.size() > framesToAnalyze) {
+                    frames.remove(0);
+                }
+
+                entity.setLastYaw(yaw);
+                entity.setLastPitch(pitch);
+            } catch (Exception e) {
+                // Silently handle packet reading errors for movement packets
             }
-
-            entity.setLastYaw(yaw);
-            entity.setLastPitch(pitch);
         }
 
         // Handle entity interaction packets (attack detection)
         if (packetType == PacketType.Play.Client.USE_ENTITY) {
-            EnumWrappers.EntityUseAction action = event.getPacket()
-                .getEntityUseActions()
-                .read(0);
-
-            if (action == EnumWrappers.EntityUseAction.ATTACK) {
+            try {
+                // Safely read the entity ID
                 int entityId = event.getPacket().getIntegers().read(0);
                 
-                Entity target = null;
-                for (Entity e : player.getWorld().getEntities()) {
-                    if (e.getEntityId() == entityId) {
-                        target = e;
-                        break;
-                    }
-                }
+                // Check if there are any EntityUseAction fields available
+                if (event.getPacket().getEntityUseActions().size() > 0) {
+                    EnumWrappers.EntityUseAction action = event.getPacket()
+                        .getEntityUseActions()
+                        .read(0);
 
-                if (target instanceof Player) {
-                    if (entity.getFrames().size() >= framesToAnalyze) {
-                        GeminiService.analyzeWithGemini(entity);
-                        entity.getFrames().clear();
+                    if (action == EnumWrappers.EntityUseAction.ATTACK) {
+                        Entity target = null;
+                        for (Entity e : player.getWorld().getEntities()) {
+                            if (e.getEntityId() == entityId) {
+                                target = e;
+                                break;
+                            }
+                        }
+
+                        if (target instanceof Player) {
+                            if (entity.getFrames().size() >= framesToAnalyze) {
+                                GeminiService.analyzeWithGemini(entity);
+                                entity.getFrames().clear();
+                            }
+                        }
+                    }
+                } else {
+                    // Fallback: assume any USE_ENTITY packet on a player is an attack
+                    Entity target = null;
+                    for (Entity e : player.getWorld().getEntities()) {
+                        if (e.getEntityId() == entityId) {
+                            target = e;
+                            break;
+                        }
+                    }
+
+                    if (target instanceof Player) {
+                        if (entity.getFrames().size() >= framesToAnalyze) {
+                            GeminiService.analyzeWithGemini(entity);
+                            entity.getFrames().clear();
+                        }
                     }
                 }
+            } catch (Exception e) {
+                // Silently handle any packet reading errors
+                // This prevents the plugin from crashing due to packet structure changes
             }
         }
     }
