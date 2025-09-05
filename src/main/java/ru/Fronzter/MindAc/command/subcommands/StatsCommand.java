@@ -28,35 +28,35 @@ public class StatsCommand extends SubCommand {
 
     @Override
     public String getDescription() {
-        return "Показать статистику нарушений игрока";
+        return "Show player's violation statistics";
     }
 
     @Override
     public String getUsage() {
-        return "/mindai stats <игрок>";
+        return "/mindai stats <player>";
     }
 
     @Override
     public void execute(CommandSender sender, String[] args) {
         if (args.length < 1) {
-            sender.sendMessage(ChatColor.WHITE + "Использование: " + getUsage());
+            sender.sendMessage(ChatColor.WHITE + "Usage: " + getUsage());
             return;
         }
         String playerName = args[0];
         @SuppressWarnings("deprecation")
         OfflinePlayer target = Bukkit.getOfflinePlayer(playerName);
         if (!target.hasPlayedBefore()) {
-            sender.sendMessage(ChatColor.WHITE + "Игрок с ником '" + playerName + "' никогда не играл на сервере.");
+            sender.sendMessage(ChatColor.WHITE + "Player with name '" + playerName + "' has never played on this server.");
             return;
         }
 
-        sender.sendMessage(ChatColor.GOLD + "Загрузка статистики для " + target.getName() + "...");
+        sender.sendMessage(ChatColor.GOLD + "Loading statistics for " + target.getName() + "...");
         plugin.getDatabaseService().getPlayerStatsAsync(target.getUniqueId(), stats -> {
-            sender.sendMessage(ChatColor.GRAY + ">><< " + ChatColor.AQUA + "Статистика для " + target.getName() + ChatColor.GRAY + " >><<");
-            sender.sendMessage(ChatColor.GOLD + "Всего нарушений в базе: " + ChatColor.WHITE + stats.getTotalViolations());
+            sender.sendMessage(ChatColor.GRAY + ">><< " + ChatColor.AQUA + "Statistics for " + target.getName() + ChatColor.GRAY + " >><<");
+            sender.sendMessage(ChatColor.GOLD + "Total violations in database: " + ChatColor.WHITE + stats.getTotalViolations());
             if (stats.getTotalViolations() > 0) {
-                sender.sendMessage(ChatColor.GOLD + "Средняя вероятность: " + ChatColor.WHITE + String.format("%.2f%%", stats.getAverageProbability() * 100));
-                sender.sendMessage(ChatColor.GOLD + "Последнее нарушение: " + ChatColor.WHITE + dateFormat.format(new Date(stats.getLastViolationTimestamp())));
+                sender.sendMessage(ChatColor.GOLD + "Average probability: " + ChatColor.WHITE + String.format("%.2f%%", stats.getAverageProbability() * 100));
+                sender.sendMessage(ChatColor.GOLD + "Last violation: " + ChatColor.WHITE + dateFormat.format(new Date(stats.getLastViolationTimestamp())));
             }
         });
     }

@@ -18,7 +18,7 @@ public class ReloadCommand extends SubCommand {
 
     @Override
     public String getDescription() {
-        return "Перезагрузить конфигурацию плагина";
+        return "Reload the plugin configuration";
     }
 
     @Override
@@ -29,6 +29,6 @@ public class ReloadCommand extends SubCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
         plugin.reloadPluginConfig();
-        sender.sendMessage(ChatColor.GREEN + "Конфигурация MindAI успешно перезагружена.");
+        sender.sendMessage(ChatColor.GREEN + "MindAI configuration successfully reloaded.");
     }
 }

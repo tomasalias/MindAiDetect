@@ -19,7 +19,7 @@ public class AlertsCommand extends SubCommand {
 
     @Override
     public String getDescription() {
-        return "Включить/выключить оповещения для себя";
+        return "Toggle alerts for yourself";
     }
 
     @Override
@@ -30,15 +30,15 @@ public class AlertsCommand extends SubCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.WHITE + "Эту команду может использовать только игрок. (CONSOLE NEZA)");
+            sender.sendMessage(ChatColor.WHITE + "This command can only be used by a player. (CONSOLE NOT ALLOWED)");
             return;
         }
         Player player = (Player) sender;
         boolean newState = plugin.toggleAlerts(player.getUniqueId());
         if (newState) {
-            player.sendMessage(ChatColor.GREEN + "Оповещения от MindAI включены.");
+            player.sendMessage(ChatColor.GREEN + "MindAI alerts are now enabled.");
         } else {
-            player.sendMessage(ChatColor.RED + "Оповещения от MindAI выключены.");
+            player.sendMessage(ChatColor.RED + "MindAI alerts are now disabled.");
         }
     }
 }

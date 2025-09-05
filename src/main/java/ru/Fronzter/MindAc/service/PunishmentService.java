@@ -26,7 +26,7 @@ public class PunishmentService {
         final int levitationStrength = config.getInt("levitation-strength", 1) - 1;
         final double radius = config.getDouble("particle.radius", 1.5);
         final int particleCount = config.getInt("particle.count", 10);
-        final String finalCommand = config.getString("command", "kick %player% Наказан MindAI");
+        final String finalCommand = config.getString("command", "kick %player% Punished by MindAI");
 
         final Particle.DustOptions dustOptions = getDustOptions(config);
         Sound startSound = getSound(config.getString("sounds.start-sound"), "ENTITY_EVOKER_PREPARE_SUMMON");

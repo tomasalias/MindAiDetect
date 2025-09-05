@@ -24,12 +24,12 @@ public class PunishCommand extends SubCommand {
 
     @Override
     public String getDescription() {
-        return "Запускает анимацию наказания для игрока";
+        return "Start punishment animation for a player";
     }
 
     @Override
     public String getUsage() {
-        return "/mindai punish <игрок>";
+        return "/mindai punish <player>";
     }
 
     @Override

@@ -29,18 +29,18 @@ public class HistoryCommand extends SubCommand {
 
     @Override
     public String getDescription() {
-        return "Показать историю нарушений игрока";
+        return "Show player's violation history";
     }
 
     @Override
     public String getUsage() {
-        return "/mindai history <игрок>";
+        return "/mindai history <player>";
     }
 
     @Override
     public void execute(CommandSender sender, String[] args) {
         if (args.length < 1) {
-            sender.sendMessage(ChatColor.WHITE + "Использование: " + getUsage());
+            sender.sendMessage(ChatColor.WHITE + "Usage: " + getUsage());
             return;
         }
 
@@ -49,17 +49,17 @@ public class HistoryCommand extends SubCommand {
         OfflinePlayer target = Bukkit.getOfflinePlayer(playerName);
 
         if (!target.hasPlayedBefore()) {
-            sender.sendMessage(ChatColor.WHITE + "Игрок с ником '" + playerName + "' никогда не играл на сервере.");
+            sender.sendMessage(ChatColor.WHITE + "Player with name '" + playerName + "' has never played on this server.");
             return;
         }
 
-        sender.sendMessage(ChatColor.GOLD + "Загрузка истории для " + target.getName() + "...");
+        sender.sendMessage(ChatColor.GOLD + "Loading history for " + target.getName() + "...");
         plugin.getDatabaseService().getPlayerHistoryAsync(target.getUniqueId(), history -> {
             if (history.isEmpty()) {
-                sender.sendMessage(ChatColor.GREEN + "У игрока " + target.getName() + " нет зафиксированных нарушений.");
+                sender.sendMessage(ChatColor.GREEN + "Player " + target.getName() + " has no recorded violations.");
                 return;
             }
-            sender.sendMessage(ChatColor.GRAY + ">><< " + ChatColor.AQUA + "История нарушений для " + target.getName() + ChatColor.GRAY + " <<>>");
+            sender.sendMessage(ChatColor.GRAY + ">><< " + ChatColor.AQUA + "Violation history for " + target.getName() + ChatColor.GRAY + " <<>>");
             for (ViolationRecord record : history) {
                 String formattedDate = dateFormat.format(new Date(record.getTimestamp()));
                 String formattedProb = String.format("%.2f%%", record.getProbability() * 100.0D);
