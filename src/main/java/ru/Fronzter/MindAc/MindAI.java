@@ -8,6 +8,9 @@ import java.util.concurrent.TimeUnit;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
+
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -16,6 +19,8 @@ import okhttp3.Response;
 import ru.Fronzter.MindAc.command.CommandManager;
 import ru.Fronzter.MindAc.listener.ConnectionListener;
 import ru.Fronzter.MindAc.listener.MovementListener;
+import ru.Fronzter.MindAc.listener.ProtocolLibPacketListener;
+import ru.Fronzter.MindAc.service.CheatDetectionService;
 import ru.Fronzter.MindAc.service.DatabaseService;
 import ru.Fronzter.MindAc.service.HeartbeatService;
 import ru.Fronzter.MindAc.service.ViolationManager;
@@ -28,6 +33,8 @@ public final class MindAI extends JavaPlugin {
     private DatabaseService databaseService;
     private OkHttpClient httpClient;
     private ViolationManager violationManager;
+    private ProtocolManager protocolManager;
+    private CheatDetectionService cheatDetectionService;
 
     @Override
     public void onEnable() {
@@ -40,6 +47,9 @@ public final class MindAI extends JavaPlugin {
             return;
         }
 
+        // Initialize ProtocolLib
+        initializeProtocolLib();
+
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(10, TimeUnit.SECONDS)
@@ -50,6 +60,7 @@ public final class MindAI extends JavaPlugin {
         databaseService.init();
 
         this.violationManager = new ViolationManager(this);
+        this.cheatDetectionService = new CheatDetectionService(this);
 
         String apiKey = getConfig().getString("gemini-api-key", "");
         if (apiKey.isEmpty() || apiKey.equals("YOUR_GEMINI_API_KEY_HERE")) {
@@ -71,6 +82,21 @@ public final class MindAI extends JavaPlugin {
 
     private boolean checkProtocolLib() {
         return getServer().getPluginManager().getPlugin("ProtocolLib") != null;
+    }
+
+    private void initializeProtocolLib() {
+        if (checkProtocolLib()) {
+            try {
+                this.protocolManager = ProtocolLibrary.getProtocolManager();
+                getLogger().info("ProtocolLib found and initialized successfully!");
+            } catch (Exception e) {
+                getLogger().warning("Failed to initialize ProtocolLib: " + e.getMessage());
+                this.protocolManager = null;
+            }
+        } else {
+            this.protocolManager = null;
+            getLogger().warning("ProtocolLib not found - packet monitoring will be limited");
+        }
     }
 
     private void validateGeminiApiKey(final String apiKey) {
@@ -113,16 +139,22 @@ public final class MindAI extends JavaPlugin {
     }
 
     private void initializePluginServices() {
-        // Register ProtocolLib packet listener (temporarily disabled due to ViaVersion conflicts)
-        // if (protocolManager != null) {
-        //     protocolManager.addPacketListener(new ProtocolLibPacketListener(this));
-        // }
+        // Register ProtocolLib packet listener for comprehensive packet monitoring
+        if (protocolManager != null) {
+            try {
+                protocolManager.addPacketListener(new ProtocolLibPacketListener(this));
+                getLogger().info("ProtocolLib packet listener registered successfully!");
+            } catch (Exception e) {
+                getLogger().warning("Failed to register ProtocolLib packet listener: " + e.getMessage());
+                getLogger().info("Falling back to Bukkit event listeners only");
+            }
+        }
         
-        // Register Bukkit event listeners (these work better with ViaVersion)
+        // Register Bukkit event listeners as backup/supplement
         getServer().getPluginManager().registerEvents(new ConnectionListener(), this);
         getServer().getPluginManager().registerEvents(new MovementListener(), this);
         
-        getLogger().info("MindAI initialized with Gemini API and Bukkit event listeners");
+        getLogger().info("MindAI initialized with comprehensive packet and event monitoring");
         
         // Start heartbeat service (optional)
         long interval = 20L * 60 * 5; // 5 minutes
@@ -166,4 +198,5 @@ public final class MindAI extends JavaPlugin {
     public DatabaseService getDatabaseService() { return databaseService; }
     public OkHttpClient getHttpClient() { return this.httpClient; }
     public ViolationManager getViolationManager() { return this.violationManager; }
+    public CheatDetectionService getCheatDetectionService() { return this.cheatDetectionService; }
 }

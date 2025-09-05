@@ -15,19 +15,44 @@ license-validation:
 ml-check:
   enabled: true
   frames-to-analyze: 150 # Do not change!
-  # Confidence threshold. Recommended 0.80-0.95 to reduce false positives.
-  classification-threshold: 0.80
+  # Confidence threshold. Recommended 0.75-0.90 to reduce false positives.
+  classification-threshold: 0.75
 
   # How much VL is added for one flag from the anticheat.
-  vl-increment: 0.5
+  vl-increment: 1.0
 
   # VL threshold at which the player will be punished.
-  violation-threshold: 2
+  violation-threshold: 3
 
   # Lifetime of one flag in seconds.
   # After this time 1 flag (vl-increment) will completely disappear. (600 = 10 minutes)
   # VL will decrease gradually over this time.
   window: 600
+
+# Enhanced cheat detection settings
+cheat-detection:
+  # Enable packet-level monitoring for comprehensive tracking
+  packet-monitoring: true
+  
+  # Mouse movement analysis sensitivity
+  movement-analysis:
+    # Minimum movement threshold to track (reduces noise)
+    min-movement-threshold: 0.01
+    
+    # Robotic movement detection sensitivity (lower = more sensitive)
+    robotic-detection-threshold: 0.01
+    
+    # Precision detection threshold (higher = more suspicious precise movements needed)
+    precision-threshold: 0.6
+    
+    # Snap-to-target detection (minimum movement magnitude to consider a "snap")
+    snap-detection-threshold: 5.0
+    
+    # Consistency detection threshold (higher = need more consistent movements to flag)
+    consistency-threshold: 0.7
+
+  # Rate limiting for analysis (milliseconds between checks per player)
+  analysis-cooldown: 2000
 
 # Alert settings for administration
 alerts:
