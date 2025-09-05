@@ -8,9 +8,6 @@ import java.util.concurrent.TimeUnit;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.ProtocolManager;
-
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -19,7 +16,6 @@ import okhttp3.Response;
 import ru.Fronzter.MindAc.command.CommandManager;
 import ru.Fronzter.MindAc.listener.ConnectionListener;
 import ru.Fronzter.MindAc.listener.MovementListener;
-import ru.Fronzter.MindAc.listener.ProtocolLibPacketListener;
 import ru.Fronzter.MindAc.service.DatabaseService;
 import ru.Fronzter.MindAc.service.HeartbeatService;
 import ru.Fronzter.MindAc.service.ViolationManager;
@@ -32,7 +28,6 @@ public final class MindAI extends JavaPlugin {
     private DatabaseService databaseService;
     private OkHttpClient httpClient;
     private ViolationManager violationManager;
-    private ProtocolManager protocolManager;
 
     @Override
     public void onEnable() {
@@ -44,8 +39,6 @@ public final class MindAI extends JavaPlugin {
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
-
-        this.protocolManager = ProtocolLibrary.getProtocolManager();
 
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
@@ -120,14 +113,16 @@ public final class MindAI extends JavaPlugin {
     }
 
     private void initializePluginServices() {
-        // Register ProtocolLib packet listener
-        if (protocolManager != null) {
-            protocolManager.addPacketListener(new ProtocolLibPacketListener(this));
-        }
+        // Register ProtocolLib packet listener (temporarily disabled due to ViaVersion conflicts)
+        // if (protocolManager != null) {
+        //     protocolManager.addPacketListener(new ProtocolLibPacketListener(this));
+        // }
         
-        // Register Bukkit event listeners
+        // Register Bukkit event listeners (these work better with ViaVersion)
         getServer().getPluginManager().registerEvents(new ConnectionListener(), this);
         getServer().getPluginManager().registerEvents(new MovementListener(), this);
+        
+        getLogger().info("MindAI initialized with Gemini API and Bukkit event listeners");
         
         // Start heartbeat service (optional)
         long interval = 20L * 60 * 5; // 5 minutes

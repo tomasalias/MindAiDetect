@@ -1,14 +1,21 @@
 package ru.Fronzter.MindAc.service;
 
-import okhttp3.*;
-import org.bukkit.Bukkit;
-import ru.Fronzter.MindAc.MindAI;
-import ru.Fronzter.MindAc.entity.Frame;
-import ru.Fronzter.MindAc.entity.PlayerEntity;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.bukkit.Bukkit;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+import ru.Fronzter.MindAc.MindAI;
+import ru.Fronzter.MindAc.entity.Frame;
+import ru.Fronzter.MindAc.entity.PlayerEntity;
 
 public class GeminiService {
 
@@ -96,18 +103,22 @@ public class GeminiService {
         StringBuilder prompt = new StringBuilder();
         prompt.append("Analyze the following Minecraft player movement data for potential cheating behavior. ");
         prompt.append("Player: ").append(playerName).append("\\n");
-        prompt.append("Movement frames (yaw_delta, pitch_delta):\\n");
+        prompt.append("Movement frames (yaw_delta, pitch_delta) over ").append(frames.size()).append(" samples:\\n");
         
-        // Convert frames to a readable format
+        // Convert frames to a readable format with some statistical info
         String frameData = frames.stream()
                 .map(frame -> String.format("(%.2f, %.2f)", frame.getX(), frame.getY()))
                 .collect(Collectors.joining(", "));
         
         prompt.append(frameData).append("\\n\\n");
-        prompt.append("Based on this movement data, analyze for signs of aimbot, killaura, or other cheating software. ");
-        prompt.append("Look for unnatural movement patterns, perfect accuracy, or robotic behavior. ");
+        prompt.append("IMPORTANT: Be very conservative in your analysis. Only flag as cheating if you see clear evidence of: ");
+        prompt.append("1) Perfectly consistent robotic movements, 2) Impossible precision or reaction times, ");
+        prompt.append("3) Unnatural snap-to-target behavior, or 4) Repetitive mechanical patterns. ");
+        prompt.append("Normal human variation, occasional precise movements, and combat skill should NOT be flagged. ");
+        prompt.append("Most players are legitimate - err on the side of caution. ");
         prompt.append("Respond with only a probability between 0.0 and 1.0, where 0.0 means definitely not cheating ");
-        prompt.append("and 1.0 means definitely cheating. Format: PROBABILITY: X.XX");
+        prompt.append("and 1.0 means definitely cheating. For uncertain cases, use values below 0.5. ");
+        prompt.append("Format: PROBABILITY: X.XX");
         
         return prompt.toString();
     }

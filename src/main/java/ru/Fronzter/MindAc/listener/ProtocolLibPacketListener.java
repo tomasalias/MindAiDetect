@@ -21,6 +21,7 @@ public class ProtocolLibPacketListener extends PacketAdapter {
 
     private final boolean isMlCheckEnabled;
     private final int framesToAnalyze;
+    private final java.util.Map<java.util.UUID, Long> lastAnalysisTime = new java.util.concurrent.ConcurrentHashMap<>();
 
     public ProtocolLibPacketListener(MindAI plugin) {
         super(plugin, ListenerPriority.NORMAL, 
@@ -77,49 +78,74 @@ public class ProtocolLibPacketListener extends PacketAdapter {
                 // Safely read the entity ID
                 int entityId = event.getPacket().getIntegers().read(0);
                 
-                // Check if there are any EntityUseAction fields available
-                if (event.getPacket().getEntityUseActions().size() > 0) {
-                    EnumWrappers.EntityUseAction action = event.getPacket()
-                        .getEntityUseActions()
-                        .read(0);
+                // Schedule the entity lookup on the main thread to avoid async issues
+                org.bukkit.Bukkit.getScheduler().runTask(MindAI.getInstance(), () -> {
+                    try {
+                        // Check if there are any EntityUseAction fields available
+                        boolean isAttack = false;
+                        if (event.getPacket().getEntityUseActions().size() > 0) {
+                            EnumWrappers.EntityUseAction action = event.getPacket()
+                                .getEntityUseActions()
+                                .read(0);
+                            isAttack = (action == EnumWrappers.EntityUseAction.ATTACK);
+                        } else {
+                            // Fallback: assume any USE_ENTITY packet on a player is potentially an attack
+                            isAttack = true;
+                        }
 
-                    if (action == EnumWrappers.EntityUseAction.ATTACK) {
-                        Entity target = null;
-                        for (Entity e : player.getWorld().getEntities()) {
-                            if (e.getEntityId() == entityId) {
-                                target = e;
-                                break;
+                        if (isAttack) {
+                            Entity target = null;
+                            // Now safe to call getEntities() from main thread
+                            for (Entity e : player.getWorld().getEntities()) {
+                                if (e.getEntityId() == entityId) {
+                                    target = e;
+                                    break;
+                                }
+                            }
+
+                            if (target instanceof Player && entity.getFrames().size() >= framesToAnalyze) {
+                                // Rate limiting: only analyze once every 5 seconds per player
+                                long currentTime = System.currentTimeMillis();
+                                Long lastTime = lastAnalysisTime.get(player.getUniqueId());
+                                
+                                if (lastTime == null || (currentTime - lastTime) > 5000) {
+                                    lastAnalysisTime.put(player.getUniqueId(), currentTime);
+                                    
+                                    // Check if there's meaningful movement variance (not just noise)
+                                    if (hasSignificantMovement(entity.getFrames())) {
+                                        GeminiService.analyzeWithGemini(entity);
+                                    }
+                                    entity.getFrames().clear();
+                                }
                             }
                         }
-
-                        if (target instanceof Player) {
-                            if (entity.getFrames().size() >= framesToAnalyze) {
-                                GeminiService.analyzeWithGemini(entity);
-                                entity.getFrames().clear();
-                            }
-                        }
+                    } catch (Exception e) {
+                        // Silently handle any errors in the main thread task
                     }
-                } else {
-                    // Fallback: assume any USE_ENTITY packet on a player is an attack
-                    Entity target = null;
-                    for (Entity e : player.getWorld().getEntities()) {
-                        if (e.getEntityId() == entityId) {
-                            target = e;
-                            break;
-                        }
-                    }
-
-                    if (target instanceof Player) {
-                        if (entity.getFrames().size() >= framesToAnalyze) {
-                            GeminiService.analyzeWithGemini(entity);
-                            entity.getFrames().clear();
-                        }
-                    }
-                }
+                });
             } catch (Exception e) {
                 // Silently handle any packet reading errors
                 // This prevents the plugin from crashing due to packet structure changes
             }
         }
+    }
+    
+    private boolean hasSignificantMovement(List<Frame> frames) {
+        if (frames.size() < 10) return false;
+        
+        // Calculate variance in movement to detect if there's meaningful data
+        double totalYawVariance = 0;
+        double totalPitchVariance = 0;
+        
+        for (Frame frame : frames) {
+            totalYawVariance += Math.abs(frame.getX()); // yaw delta
+            totalPitchVariance += Math.abs(frame.getY()); // pitch delta
+        }
+        
+        double avgYawVariance = totalYawVariance / frames.size();
+        double avgPitchVariance = totalPitchVariance / frames.size();
+        
+        // Only analyze if there's significant movement (not just tiny mouse jitter)
+        return avgYawVariance > 0.5 || avgPitchVariance > 0.5;
     }
 }
