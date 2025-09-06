@@ -26,6 +26,8 @@ public class MovementListener implements Listener {
     private final int framesToAnalyze;
     private final Map<UUID, Long> lastBlockBreakTime = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> rapidBreakCount = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastSpeedCheck = new ConcurrentHashMap<>();
+    private final Map<UUID, Double> lastPlayerSpeed = new ConcurrentHashMap<>();
 
     public MovementListener() {
         this.isMlCheckEnabled = MindAI.getInstance().getConfig().getBoolean("ml-check.enabled", false);
@@ -66,6 +68,52 @@ public class MovementListener implements Listener {
 
                 entity.setLastYaw(event.getTo().getYaw());
                 entity.setLastPitch(event.getTo().getPitch());
+            }
+        }
+
+        // Check for movement-based cheats (speed, fly, etc.)
+        checkMovementCheats(player, event);
+    }
+
+    private void checkMovementCheats(Player player, PlayerMoveEvent event) {
+        UUID playerId = player.getUniqueId();
+        long currentTime = System.currentTimeMillis();
+        
+        // Rate limit speed checks (every 2 seconds)
+        Long lastCheck = lastSpeedCheck.get(playerId);
+        if (lastCheck != null && (currentTime - lastCheck) < 2000) {
+            return;
+        }
+        lastSpeedCheck.put(playerId, currentTime);
+
+        // Calculate movement speed
+        if (event.getFrom().getWorld() != event.getTo().getWorld()) return;
+        
+        double distance = event.getFrom().distance(event.getTo());
+        long timeDiff = currentTime - lastSpeedCheck.getOrDefault(playerId, currentTime - 1000);
+        double speed = distance / (timeDiff / 1000.0); // blocks per second
+
+        // Store speed for analysis
+        lastPlayerSpeed.put(playerId, speed);
+
+        // Check for speed hacks (basic threshold - can be refined)
+        if (speed > 15.0 && !player.isFlying() && !player.hasPermission("mindai.bypass")) {
+            PlayerEntity entity = PlayerRegistry.getPlayer(playerId);
+            if (entity != null) {
+                MindAI.getInstance().getCheatDetectionService().analyzeMovementPattern(entity, "speed_hack");
+                MindAI.getInstance().getLogger().warning("Suspicious movement speed detected for " + player.getName() + 
+                                                       ": " + String.format("%.2f", speed) + " blocks/second");
+            }
+        }
+
+        // Check for fly hacks (moving while not on ground without fly permission)
+        if (distance > 4.0 && !player.isOnGround() && !player.isFlying() && 
+            event.getTo().getY() >= event.getFrom().getY() && !player.hasPermission("mindai.bypass")) {
+            
+            PlayerEntity entity = PlayerRegistry.getPlayer(playerId);
+            if (entity != null) {
+                MindAI.getInstance().getCheatDetectionService().analyzeMovementPattern(entity, "fly_hack");
+                MindAI.getInstance().getLogger().warning("Suspicious flying behavior detected for " + player.getName());
             }
         }
     }

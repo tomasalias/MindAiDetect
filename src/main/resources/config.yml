@@ -15,11 +15,11 @@ license-validation:
 ml-check:
   enabled: true
   frames-to-analyze: 150 # Do not change!
-  # Confidence threshold. Recommended 0.75-0.90 to reduce false positives.
-  classification-threshold: 0.75
+  # Confidence threshold. Lowered to catch more cheaters but may increase false positives
+  classification-threshold: 0.65
 
   # How much VL is added for one flag from the anticheat.
-  vl-increment: 1.0
+  vl-increment: 1.2
 
   # VL threshold at which the player will be punished.
   violation-threshold: 3
@@ -27,7 +27,7 @@ ml-check:
   # Lifetime of one flag in seconds.
   # After this time 1 flag (vl-increment) will completely disappear. (600 = 10 minutes)
   # VL will decrease gradually over this time.
-  window: 600
+  window: 300
 
 # Enhanced cheat detection settings
 cheat-detection:
