@@ -56,10 +56,12 @@ public class MovementListener implements Listener {
                 Frame frame = new Frame(yawDelta, pitchDelta);
 
                 List<Frame> frames = entity.getFrames();
-                frames.add(frame);
+                synchronized (frames) {
+                    frames.add(frame);
 
-                while (frames.size() > framesToAnalyze) {
-                    frames.remove(0);
+                    while (frames.size() > framesToAnalyze) {
+                        frames.remove(0);
+                    }
                 }
 
                 entity.setLastYaw(event.getTo().getYaw());
@@ -76,9 +78,17 @@ public class MovementListener implements Listener {
             Player attacker = (Player) event.getDamager();
             PlayerEntity entity = PlayerRegistry.getPlayer(attacker.getUniqueId());
             
-            if (entity != null && entity.getFrames().size() >= framesToAnalyze) {
-                // Use the new CheatDetectionService for analysis
-                MindAI.getInstance().getCheatDetectionService().analyzeMovementPattern(entity, "combat");
+            if (entity != null) {
+                // Check if we have enough frames for analysis
+                int frameCount;
+                synchronized (entity.getFrames()) {
+                    frameCount = entity.getFrames().size();
+                }
+                
+                if (frameCount >= framesToAnalyze) {
+                    // Use the new CheatDetectionService for analysis
+                    MindAI.getInstance().getCheatDetectionService().analyzeMovementPattern(entity, "combat");
+                }
             }
         }
     }
@@ -100,8 +110,16 @@ public class MovementListener implements Listener {
             // If too many rapid breaks, trigger analysis
             if (count > 5) {
                 PlayerEntity entity = PlayerRegistry.getPlayer(playerId);
-                if (entity != null && !entity.getFrames().isEmpty()) {
-                    MindAI.getInstance().getCheatDetectionService().analyzeMovementPattern(entity, "rapid_mining");
+                if (entity != null) {
+                    // Check if frames list is not empty before analysis
+                    boolean hasFrames;
+                    synchronized (entity.getFrames()) {
+                        hasFrames = !entity.getFrames().isEmpty();
+                    }
+                    
+                    if (hasFrames) {
+                        MindAI.getInstance().getCheatDetectionService().analyzeMovementPattern(entity, "rapid_mining");
+                    }
                 }
                 rapidBreakCount.remove(playerId);
             }

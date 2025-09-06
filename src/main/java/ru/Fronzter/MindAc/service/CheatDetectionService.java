@@ -38,7 +38,12 @@ public class CheatDetectionService {
             return;
         }
         
-        List<Frame> frames = entity.getFrames();
+        // Create a thread-safe copy of the frames list to avoid ConcurrentModificationException
+        List<Frame> frames;
+        synchronized (entity.getFrames()) {
+            frames = new java.util.ArrayList<>(entity.getFrames());
+        }
+        
         if (frames.isEmpty()) return;
         
         // Perform various heuristic checks before sending to Gemini
@@ -205,7 +210,12 @@ public class CheatDetectionService {
      * Quick heuristic check for obvious cheating patterns before expensive AI analysis
      */
     public boolean isObviousCheating(PlayerEntity entity) {
-        List<Frame> frames = entity.getFrames();
+        // Create a thread-safe copy of the frames list
+        List<Frame> frames;
+        synchronized (entity.getFrames()) {
+            frames = new java.util.ArrayList<>(entity.getFrames());
+        }
+        
         if (frames.size() < 10) return false;
         
         // Check for perfect aim lock (zero variance in multiple frames)

@@ -27,18 +27,23 @@ public class GeminiService {
             return;
         }
 
-        if (entity.getFrames().isEmpty()) {
-            return;
+        // Create a thread-safe copy of frames to avoid ConcurrentModificationException
+        List<Frame> framesToAnalyze;
+        synchronized (entity.getFrames()) {
+            if (entity.getFrames().isEmpty()) {
+                return;
+            }
+            framesToAnalyze = new java.util.ArrayList<>(entity.getFrames());
         }
 
-        entity.setLastAnalyzedFrames(entity.getFrames());
+        entity.setLastAnalyzedFrames(framesToAnalyze);
 
         String model = MindAI.getInstance().getConfig().getString("gemini-settings.model", "gemini-1.5-flash");
         double temperature = MindAI.getInstance().getConfig().getDouble("gemini-settings.temperature", 0.3);
         int maxTokens = MindAI.getInstance().getConfig().getInt("gemini-settings.max-tokens", 100);
 
         // Prepare the analysis prompt
-        String prompt = createAnalysisPrompt(entity.getName(), entity.getLastAnalyzedFrames());
+        String prompt = createAnalysisPrompt(entity.getName(), framesToAnalyze);
 
         try {
             // Create a simplified JSON manually since we removed Moshi

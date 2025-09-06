@@ -109,10 +109,12 @@ public class ProtocolLibPacketListener extends PacketAdapter {
             if (Math.abs(yawDelta) > 0.01 || Math.abs(pitchDelta) > 0.01) {
                 Frame frame = new Frame(yawDelta, pitchDelta);
                 List<Frame> frames = entity.getFrames();
-                frames.add(frame);
+                synchronized (frames) {
+                    frames.add(frame);
 
-                while (frames.size() > framesToAnalyze) {
-                    frames.remove(0);
+                    while (frames.size() > framesToAnalyze) {
+                        frames.remove(0);
+                    }
                 }
 
                 entity.setLastYaw(yaw);
@@ -153,16 +155,24 @@ public class ProtocolLibPacketListener extends PacketAdapter {
                             }
                         }
 
-                        if (target instanceof Player && entity.getFrames().size() >= framesToAnalyze) {
-                            // Rate limiting: only analyze once every 3 seconds per player
-                            long currentTime = System.currentTimeMillis();
-                            Long lastTime = lastAnalysisTime.get(player.getUniqueId());
+                        if (target instanceof Player) {
+                            // Check frame count in a thread-safe way
+                            int frameCount;
+                            synchronized (entity.getFrames()) {
+                                frameCount = entity.getFrames().size();
+                            }
                             
-                            if (lastTime == null || (currentTime - lastTime) > 3000) {
-                                lastAnalysisTime.put(player.getUniqueId(), currentTime);
+                            if (frameCount >= framesToAnalyze) {
+                                // Rate limiting: only analyze once every 3 seconds per player
+                                long currentTime = System.currentTimeMillis();
+                                Long lastTime = lastAnalysisTime.get(player.getUniqueId());
                                 
-                                // Use the new CheatDetectionService for comprehensive analysis
-                                MindAI.getInstance().getCheatDetectionService().analyzeMovementPattern(entity, "combat");
+                                if (lastTime == null || (currentTime - lastTime) > 3000) {
+                                    lastAnalysisTime.put(player.getUniqueId(), currentTime);
+                                    
+                                    // Use the new CheatDetectionService for comprehensive analysis
+                                    MindAI.getInstance().getCheatDetectionService().analyzeMovementPattern(entity, "combat");
+                                }
                             }
                         }
                     }

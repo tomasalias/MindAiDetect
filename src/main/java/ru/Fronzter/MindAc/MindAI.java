@@ -144,17 +144,23 @@ public final class MindAI extends JavaPlugin {
             try {
                 protocolManager.addPacketListener(new ProtocolLibPacketListener(this));
                 getLogger().info("ProtocolLib packet listener registered successfully!");
+                getLogger().info("Plugin will use packet-level monitoring for enhanced detection");
             } catch (Exception e) {
                 getLogger().warning("Failed to register ProtocolLib packet listener: " + e.getMessage());
                 getLogger().info("Falling back to Bukkit event listeners only");
             }
+        } else {
+            getLogger().info("ProtocolLib not available - using Bukkit event listeners only");
         }
         
         // Register Bukkit event listeners as backup/supplement
         getServer().getPluginManager().registerEvents(new ConnectionListener(), this);
         getServer().getPluginManager().registerEvents(new MovementListener(), this);
         
-        getLogger().info("MindAI initialized with comprehensive packet and event monitoring");
+        // Log version compatibility info
+        String serverVersion = getServer().getVersion();
+        getLogger().info("Server version detected: " + serverVersion);
+        getLogger().info("MindAI initialized with comprehensive monitoring system");
         
         // Start heartbeat service (optional)
         long interval = 20L * 60 * 5; // 5 minutes
